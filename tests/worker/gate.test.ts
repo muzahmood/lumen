@@ -65,7 +65,7 @@ describe('Cloudflare Access check', () => {
   it('names the Worker in the setup steps when it is on its workers.dev address', async () => {
     const page = await withEnv({ ACCESS_AUD: '' }, 'https://my-notes.someone.workers.dev/');
     expect(page.status).toBe(503);
-    expect(page.body).toContain('Workers &amp; Pages → my-notes');
+    expect(page.body).toContain('Workers &amp; Pages</a> → <b>my-notes</b>');
     const elsewhere = await withEnv({ ACCESS_AUD: '' }, `${PUBLIC}/`);
     expect(elsewhere.body).toContain('your Lumen Worker');
     // A preview or nested address (or anything unexpected) isn't taken for a Worker name.

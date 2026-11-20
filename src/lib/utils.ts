@@ -185,6 +185,54 @@ export function wordCount(md: string): number {
   return m ? m.length : 0;
 }
 
+/**
+ * JSON laid out with two-space indents, as JSON.stringify(value, null, 2) lays it out, but worked on
+ * the text itself, so keys, strings and numbers stay exactly as written: parsing and printing it again
+ * would round big numbers, move keys like "10" ahead of the rest, and drop repeated keys. Null when
+ * it isn't valid JSON.
+ */
+export function formatJson(text: string): string | null {
+  try {
+    JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const isSpace = (c: string) => c === ' ' || c === '\t' || c === '\n' || c === '\r';
+  let out = '';
+  let depth = 0;
+  const newline = () => `\n${'  '.repeat(depth)}`;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      // Copied whole; it's valid JSON, so the string is closed.
+      let end = i + 1;
+      while (text[end] !== '"') end += text[end] === '\\' ? 2 : 1;
+      out += text.slice(i, end + 1);
+      i = end;
+    } else if (c === '{' || c === '[') {
+      let next = i + 1;
+      while (next < text.length && isSpace(text[next])) next++;
+      if (text[next] === (c === '{' ? '}' : ']')) {
+        out += c + text[next]; // empty: {} or []
+        i = next;
+      } else {
+        depth++;
+        out += c + newline();
+      }
+    } else if (c === '}' || c === ']') {
+      depth--;
+      out += newline() + c;
+    } else if (c === ',') {
+      out += `,${newline()}`;
+    } else if (c === ':') {
+      out += ': ';
+    } else if (!isSpace(c)) {
+      out += c;
+    }
+  }
+  return out;
+}
+
 export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: number) {
   let t: ReturnType<typeof setTimeout> | undefined;
   const wrapped = (...args: A) => {

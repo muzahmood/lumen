@@ -10,6 +10,7 @@ import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView, type WidgetType } from '@codemirror/view';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
+import { history, undo } from '@codemirror/commands';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // Mermaid needs a real layout engine; the widget only needs some SVG back.
@@ -69,7 +70,10 @@ function makeHost(titles: string[] = ['Note']) {
   return { ref: { current: host } as HostRef, calls };
 }
 
-async function editor(doc: string, opts: { focus?: boolean; cursor?: number; host?: HostRef; extensions?: 'live' | 'peeks' } = {}) {
+async function editor(
+  doc: string,
+  opts: { focus?: boolean; cursor?: number; host?: HostRef; extensions?: 'live' | 'peeks'; undo?: boolean } = {},
+) {
   const parent = document.createElement('div');
   document.body.appendChild(parent);
   const host = opts.host ?? makeHost().ref;
@@ -77,7 +81,11 @@ async function editor(doc: string, opts: { focus?: boolean; cursor?: number; hos
     parent,
     state: EditorState.create({
       doc,
-      extensions: [markdown({ base: markdownLanguage }), opts.extensions === 'peeks' ? imagePeeks : livePreview(host)],
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        opts.extensions === 'peeks' ? imagePeeks : livePreview(host),
+        opts.undo ? history() : [],
+      ],
     }),
   });
   views.push(view);
@@ -147,11 +155,11 @@ function shown(view: EditorView, from = 0, to = view.state.doc.length): string {
   return out + doc.slice(at, to);
 }
 
-/** Presses the Copy button on the (first) code block's label. */
-function pressCopy(view: EditorView) {
-  const button = view.dom.querySelector('.cm-lp-code-copy')!;
-  button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+/** Presses the Copy (or Format) button on the (first) code block's label. */
+function pressCopy(view: EditorView, button = '.cm-lp-code-copy') {
+  view.dom.querySelector(button)!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
 }
+const pressFormat = (view: EditorView) => pressCopy(view, '.cm-lp-code-format');
 
 const shownLine = (view: EditorView, n: number) => {
   const line = view.state.doc.line(n);
@@ -368,6 +376,53 @@ describe('code blocks in live preview', () => {
     useApp.setState({ toasts: [] });
     pressCopy(await editor('```\nx\n```\n\nend'));
     expect(useApp.getState().toasts.at(-1)).toMatchObject({ message: 'Couldn’t copy to the clipboard', kind: 'error' });
+  });
+
+  it('offer Format on JSON blocks only', async () => {
+    const view = await editor('```JSON\n{}\n```\n\n```js\nx\n```\n\n```\ny\n```\n\nend');
+    expect(view.dom.querySelectorAll('.cm-lp-code-format')).toHaveLength(1);
+    expect(view.dom.querySelectorAll('.cm-lp-code-copy')).toHaveLength(3);
+  });
+
+  it('format JSON in one change that one undo takes back, the cursor and fences left as they were', async () => {
+    const doc = 'Intro\n\n```json\n{"a":1,"b":[1,2],"10":"x"}\n```\n\nend';
+    const view = await editor(doc, { focus: true, cursor: 0, undo: true });
+    pressFormat(view);
+    expect(view.state.doc.toString()).toBe('Intro\n\n```json\n{\n  "a": 1,\n  "b": [\n    1,\n    2\n  ],\n  "10": "x"\n}\n```\n\nend');
+    expect(view.state.selection.main.head).toBe(0);
+    expect(shownLine(view, 3)).toBe('[code json]');
+    undo(view);
+    expect(view.state.doc.toString()).toBe(doc);
+  });
+
+  it('format JSON in a list or a quote, keeping each line in it, and in a block never closed', async () => {
+    const list = await editor('- item\n  ```json\n  {"a":1}\n  ```\n\nend');
+    pressFormat(list);
+    expect(list.state.doc.toString()).toBe('- item\n  ```json\n  {\n    "a": 1\n  }\n  ```\n\nend');
+    const marker = await editor('- ```json\n  [1]\n  ```\n\nend');
+    pressFormat(marker);
+    expect(marker.state.doc.toString()).toBe('- ```json\n  [\n    1\n  ]\n  ```\n\nend');
+    const quote = await editor('> ```json\n> {"a":[1]}\n> ```\n\nend');
+    pressFormat(quote);
+    expect(quote.state.doc.toString()).toBe('> ```json\n> {\n>   "a": [\n>     1\n>   ]\n> }\n> ```\n\nend');
+    const open = await editor('Intro\n\n```json\n{"a":1}');
+    pressFormat(open);
+    expect(open.state.doc.toString()).toBe('Intro\n\n```json\n{\n  "a": 1\n}');
+  });
+
+  it('leave JSON that doesn’t parse, or is already laid out, as it is, and say so', async () => {
+    useApp.setState({ toasts: [] });
+    for (const doc of ['```json\n{"a":1,}\n```\n\nend', '```json\n```\n\nend']) {
+      const view = await editor(doc);
+      pressFormat(view);
+      expect(view.state.doc.toString()).toBe(doc);
+      expect(useApp.getState().toasts.at(-1)).toMatchObject({ message: 'This isn’t valid JSON, so it was left as it is.', kind: 'error' });
+    }
+    const tidy = '```json\n{\n  "a": 1\n}\n```\n\nend';
+    const view = await editor(tidy);
+    pressFormat(view);
+    expect(view.state.doc.toString()).toBe(tidy);
+    expect(useApp.getState().toasts.at(-1)?.message).toBe('This JSON is already formatted.');
   });
 
   it('work in lists and quotes, and on a block never closed', async () => {

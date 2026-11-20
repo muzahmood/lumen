@@ -24,7 +24,7 @@ import { allowRemote, codeToCopy, fenceCode, fillMath, isRemoteUrl, remoteAllowe
 import { useSettings } from './settings';
 import { toast } from './store';
 import { tickTaskLine } from './tasks';
-import { todayIso } from './utils';
+import { formatJson, todayIso } from './utils';
 import { findMathBlocks, scanInlineMath, type MathBlock } from './mathSyntax';
 import { knownDiagramHeight, OFFLINE_DIAGRAM_MESSAGE, rememberDiagramHeight, renderMermaid } from './mermaid';
 import { isChunkError } from './recovery';
@@ -197,8 +197,8 @@ class RuleWidget extends WidgetType {
 }
 
 /**
- * A code block's language and a Copy button, shown in place of its opening fence, as reading view
- * labels a block.
+ * A code block's language and a Copy button (and, for JSON, Format), shown in place of its opening
+ * fence, as reading view labels a block.
  */
 class CodeLangWidget extends WidgetType {
   constructor(readonly lang: string) {
@@ -212,16 +212,25 @@ class CodeLangWidget extends WidgetType {
     const label = document.createElement('span');
     label.className = 'cm-lp-code-lang';
     label.textContent = this.lang;
-    const copy = document.createElement('button');
-    copy.type = 'button';
-    copy.className = 'cm-lp-code-copy';
-    copy.textContent = 'Copy';
-    copy.setAttribute('aria-label', 'Copy code');
-    copy.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Read when pressed, so it's the code as it is now; the button stays put while the code changes.
-      const code = fenceCode(view.state.doc.toString(), view.state.doc.lineAt(view.posAtDOM(wrap)).number - 1);
+    const tools = document.createElement('span');
+    tools.className = 'cm-lp-code-tools';
+    // Each acts when pressed, on the block as it is then; the buttons stay put while the code changes.
+    const button = (text: string, cls: string, name: string, run: (at: number) => void) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = cls;
+      b.textContent = text;
+      b.setAttribute('aria-label', name);
+      b.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        run(view.posAtDOM(wrap));
+      });
+      tools.appendChild(b);
+    };
+    if (this.lang === 'json') button('Format', 'cm-lp-code-format', 'Format JSON', (at) => formatJsonBlock(view, at));
+    button('Copy', 'cm-lp-code-copy', 'Copy code', (at) => {
+      const code = fenceCode(view.state.doc.toString(), view.state.doc.lineAt(at).number - 1);
       if (code === null) return;
       const copied = navigator.clipboard?.writeText(codeToCopy(code));
       if (!copied) return void toast('Couldn’t copy to the clipboard', { kind: 'error' });
@@ -230,13 +239,55 @@ class CodeLangWidget extends WidgetType {
         () => toast('Couldn’t copy to the clipboard', { kind: 'error' }),
       );
     });
-    wrap.append(label, copy);
+    wrap.append(label, tools);
     return wrap;
   }
-  // A click on the label places the cursor on its line, which brings the fence back; Copy just copies.
+  // A click on the label places the cursor on its line, which brings the fence back; the buttons just act.
   ignoreEvent(e: Event) {
     return e.target instanceof Element && !!e.target.closest('button');
   }
+}
+
+/**
+ * Lays out the code of the ```json block whose fence starts at `at` with two-space indents, as one
+ * change (so one undo), keys and values exactly as written. JSON that doesn't parse is left alone.
+ */
+function formatJsonBlock(view: EditorView, at: number) {
+  const { state } = view;
+  if (state.readOnly) return;
+  let block: SyntaxNode | null = syntaxTree(state).resolveInner(at, 1);
+  while (block && block.name !== 'FencedCode') block = block.parent;
+  if (!block) return;
+  const doc = state.doc;
+  const marks = block.getChildren('CodeMark');
+  const first = doc.lineAt(block.from);
+  const closing = marks.length > 1 ? marks[marks.length - 1] : null;
+  const lastCode = closing ? doc.lineAt(closing.from).number - 1 : doc.lineAt(block.to).number;
+  // The code as reading view reads it: without a list's indent or a quote's >.
+  const code = lastCode > first.number ? fenceCode(doc.toString(), first.number - 1) : null;
+  const json = code === null ? null : formatJson(code);
+  if (code === null || json === null) {
+    toast('This isn’t valid JSON, so it was left as it is.', { kind: 'error' });
+    return;
+  }
+  // Only rewrite lines both parsers agree are this block's code.
+  if (code.replace(/\n$/, '').split('\n').length !== lastCode - first.number) {
+    toast('Couldn’t format this block.', { kind: 'error' });
+    return;
+  }
+  // New lines keep the block's place in a list or quote: its > marks, and spaces for the rest.
+  const lead = first.text.slice(0, block.from - first.from).replace(/[^\s>]/g, ' ');
+  const from = doc.line(first.number + 1).from;
+  const to = doc.line(lastCode).to;
+  const insert = json
+    .split('\n')
+    .map((l) => lead + l)
+    .join('\n');
+  if (insert === doc.sliceString(from, to)) {
+    toast('This JSON is already formatted.');
+    return;
+  }
+  view.dispatch({ changes: { from, to, insert }, userEvent: 'input.format' });
 }
 
 class ImageWidget extends WidgetType {
@@ -586,7 +637,7 @@ const mathTipField = StateField.define<readonly Tooltip[]>({
 
 /**
  * A fenced code block's fences, tucked away while the cursor is outside the block: the opening one
- * shows just the language and Copy, the closing one nothing. Both lines stay (as the block's top and bottom
+ * shows just the language and its buttons, the closing one nothing. Both lines stay (as the block's top and bottom
  * edge), so the code doesn't move when the cursor goes in and the fences come back. Diagrams and
  * display math are drawn whole instead (buildBlocks), so they're left to that.
  */

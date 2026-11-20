@@ -8,7 +8,13 @@ Everyone runs their own copy, in their own Cloudflare account: there's no shared
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/muzahmood/lumen)
 
-The button copies this repository to your GitHub account, creates the database and file store in your Cloudflare account, and deploys it. Then [put Cloudflare Access in front of it](#protect-it-with-cloudflare-access) (a few clicks; Lumen shows a setup page with the exact steps until you do). Prefer the command line? See [Deploy your own](#deploy-your-own).
+**Your own Lumen in about ten minutes, free:**
+
+1. Click **Deploy to Cloudflare** above. Sign in to Cloudflare and GitHub, and choose a **setup password** when it asks (12 or more characters; a few random words work well).
+2. Open the address it gives you. The page there walks you through putting Cloudflare Access in front of it: a few clicks (the first time, Cloudflare also has you pick a Zero Trust team name).
+3. Sign in, type your setup password, and your Lumen opens.
+
+From the command line instead: clone this repository, then `npm install` and `npm run setup`, which makes up the setup password for you. More in [Deploy your own](#deploy-your-own).
 
 ## What's in it
 
@@ -88,16 +94,16 @@ npm run test:e2e     # the whole app in Chrome (a few minutes; not part of npm t
 
 ## Deploy your own
 
-Each copy of Lumen is one Worker in your own Cloudflare account, with its own database (D1) and file store (KV), on the free plan. Nothing in this repository is tied to an account: the first deploy creates the storage (named after the Worker: `lumen-db` and `lumen-files-kv`), and the settings that belong to your copy (which Access application to trust, who may sign in, your domain) are kept in your Worker's settings on Cloudflare, not in the code. Until Access is set up, every address shows a short setup page and serves nothing else, not even the app itself: a fresh deploy is never publicly readable.
+Each copy of Lumen is one Worker in your own Cloudflare account, with its own database (D1) and file store (KV), on the free plan. Nothing in this repository is tied to an account: the first deploy creates the storage (named after the Worker: `lumen-db` and `lumen-files-kv`), and what belongs to your copy (which Access application to trust, who may sign in) is recorded by your Lumen when you set it up, or kept in your Worker's settings on Cloudflare, never in the code. Until it's set up, every address shows the setup page and serves nothing else, not even the app itself: a fresh deploy is never publicly readable.
 
-There are three ways in. All three end with [Protect it with Cloudflare Access](#protect-it-with-cloudflare-access).
+There are three ways in. All three end on the setup page, which walks you through [Cloudflare Access](#protect-it-with-cloudflare-access).
 
 ### 1. The Deploy to Cloudflare button (quickest)
 
 1. Click **Deploy to Cloudflare** at the top of this page, and sign in to Cloudflare (or create a free account).
-2. Connect your GitHub (or GitLab) account and check the names it offers: the repository it makes for your copy, the Worker (its address becomes `https://<name>.<your-subdomain>.workers.dev`), and the database and file store. The defaults are fine.
+2. Connect your GitHub (or GitLab) account and check the names it offers: the repository it makes for your copy, the Worker (its address becomes `https://<name>.<your-subdomain>.workers.dev`), and the database and file store. The defaults are fine. Choose a **setup password** (`SETUP_PASSWORD`): 12 or more characters, typed once on your Lumen's first page.
 3. Deploy. Cloudflare copies this repository into your account, creates the storage, builds Lumen and deploys it, in a couple of minutes.
-4. Open the Worker's address. It says **Lumen isn't connected to Cloudflare Access yet** and lists what to do next.
+4. Open the Worker's address and follow the setup page.
 
 Your copy is connected to Workers Builds, so every push to its `main` branch deploys it again. Build logs are under **Workers & Pages → (your Worker) → Deployments**.
 
@@ -105,7 +111,8 @@ Your copy is connected to Workers Builds, so every push to its `main` branch dep
 
 1. **Fork** this repository on GitHub.
 2. In the Cloudflare dashboard, open **Workers & Pages → Create → Import a repository**, pick your fork, and use the settings below. The first build creates the storage and deploys.
-3. Open the Worker's address and follow its setup page.
+3. In the Worker's **Settings → Variables and Secrets**, add a **Secret** named `SETUP_PASSWORD`: 12 or more characters.
+4. Open the Worker's address and follow its setup page.
 
 Later versions are then one click away: **Sync fork** on GitHub, and Workers Builds deploys the update.
 
@@ -128,7 +135,7 @@ npm install
 npm run setup
 ```
 
-`npm run setup` signs you in to Cloudflare (in your browser), asks what to call the Worker, builds and deploys it (the first deploy creates the storage), then walks you through turning on Cloudflare Access and saves its values to the Worker as secrets. It's safe to run again. After that, `npm run deploy` deploys whatever is in the folder. (Without the script: `npx wrangler login`, `npm run deploy`, then [Protect it with Cloudflare Access](#protect-it-with-cloudflare-access).)
+`npm run setup` signs you in to Cloudflare (in your browser), asks what to call the Worker, and builds and deploys it (the first deploy creates the storage) with a setup password it makes up: four random words, shown when it's done. It then opens the Cloudflare dashboard for the Access step and sends you to the setup page. It's safe to run again. After that, `npm run deploy` deploys whatever is in the folder. (Without the script: `npx wrangler login`, `npm run deploy`, `npx wrangler secret put SETUP_PASSWORD`, then the setup page.)
 
 If your Cloudflare login has more than one account, Wrangler asks which to use; to skip the question, put `CLOUDFLARE_ACCOUNT_ID=<id>` in a `.env` file in the folder (Git ignores it).
 
@@ -152,26 +159,32 @@ New versions arrive in this repository. The database schema updates itself on th
 ### Your own domain
 
 1. In the Worker's **Settings → Domains & Routes**, add a custom domain such as `notes.example.com` (the domain must be on Cloudflare). Or, to keep the domain with the deploy, deploy with `npx wrangler deploy --domain notes.example.com` (as the Workers Builds deploy command, or `npm run build && npx wrangler deploy --domain notes.example.com` from your computer). That also turns the `workers.dev` address off, so there's no second address to protect.
-2. If you protected the whole Worker when you turned on Access, the domain is already covered. Otherwise, in **Zero Trust → Access → Applications**, add a **Self-hosted** application for that hostname with an **Allow** policy for your email.
-3. If that created a second Access application, add its AUD tag to `ACCESS_AUD`, separated by a comma.
+2. If you protected the whole Worker (**All traffic** in its **Access** tab), the domain is already covered, and nothing else changes. Otherwise, in **Zero Trust → Access → Applications**, add a **Self-hosted** application for that hostname with an **Allow** policy for your email.
+3. If that created a second Access application, Lumen has to trust it too: set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (both Audience tags, separated by a comma) as variables (see [Setting it up by hand](#setting-it-up-by-hand)).
 
 A domain added only in the dashboard leaves the `workers.dev` address on (each deploy turns it back on). That's safe, because the Worker refuses any request Access didn't sign in, but it's a second address to keep protected; `--domain` avoids it.
 
 ## Protect it with Cloudflare Access
 
-Cloudflare Zero Trust is free for up to 50 users. If you've never used it, the dashboard asks you to pick a team name the first time you open **Zero Trust**.
+Cloudflare Access is Cloudflare's sign-in gate, part of Zero Trust (free for up to 50 people). Lumen relies on two layers. Cloudflare Access signs you in at the edge. Then, on every request, the Worker checks the signed Access token itself: the signature, your team, this app's ID, and the expiry date. A request that reaches the Worker any other way gets nothing, whether through a hostname you forgot to protect or with a forged token.
 
-Lumen relies on two layers. Cloudflare Access signs you in at the edge. Then, on every request, the Worker checks the signed Access token itself: the signature, your team, this app's ID, and the expiry date. A request that reaches the Worker any other way gets nothing, whether through a hostname you forgot to protect or with a forged token.
+The setup page shows these steps and marks the one you're on:
 
-1. **Turn on Access.** In the Cloudflare dashboard, open **Workers & Pages → (your Worker) → Settings → Domains & Routes** and turn on **Cloudflare Access** for its `workers.dev` address. If you're offered the choice, protect the whole Worker, which covers every address it has, including any custom domain. Choose **Manage Cloudflare Access** and make sure the policy allows only your email address (or your team's).
-2. **Tell the Worker which Access app to trust.** Open your Lumen address (`https://<name>.<your-subdomain>.workers.dev`) and sign in. The setup page now lists the values to set: your team domain (`ACCESS_TEAM_DOMAIN`), the app's Audience tag (`ACCESS_AUD`), and the account you signed in with (`ACCESS_ALLOWED_EMAILS`, optional but recommended). In **Workers & Pages → (your Worker) → Settings → Variables and Secrets**, add each one (type **Text** or **Secret**) and deploy.
+1. **Zero Trust, the first time.** If you've never used Cloudflare Access, the dashboard first asks you to set up **Zero Trust**: a team name and the **Free** plan. It may ask for a payment card; the Free plan isn't charged.
+2. **Turn on Access for your Worker.** Open **Workers & Pages → (your Worker) → Access**, choose **Protect this Worker behind Access** → **All traffic**, pick a policy that lets in only you (**Cloudflare account** does, if you're its only member) and **Apply**. That covers every address the Worker has, including a custom domain added later.
+3. **Claim it.** Open your Lumen's address and sign in. Type your setup password (the one you chose on the Deploy screen, or that `npm run setup` showed you) and choose **Finish setup**. Lumen records which Access application to trust and lets in only the account you signed in with. Your notes open.
 
-   From the command line instead: `npm run setup` does this step for you, or set each with `npx wrangler secret put ACCESS_AUD` (and so on). You can also find the values in the dashboard: the team domain under **Zero Trust → Settings**, and the AUD tag on the Access application's overview.
-3. **Reload the page.** Your notes open.
+**Why a setup password.** A new Lumen is reachable before Access is in front of it, and anyone can get a validly signed Access sign-in from a Zero Trust team of their own, so a sign-in alone doesn't show the Lumen is yours: the password does. It must be 12 or more characters, wrong ones are limited to 10 an hour, and once your Lumen is set up the form is gone and the password is never used again. No setup password yet (or forgotten)? Add or replace the `SETUP_PASSWORD` secret in **Settings → Variables and Secrets**, and reload.
 
-These settings stay in your Worker's settings, not in the code, so deploys and updates keep them (`"keep_vars": true` in `wrangler.jsonc` stops a deploy from removing variables set in the dashboard). If you'd rather keep them in the repository, a `vars` section in `wrangler.jsonc` works too, and wins over the dashboard on every deploy.
+### Setting it up by hand
 
-**Allowing only specific accounts.** `ACCESS_ALLOWED_EMAILS` takes a comma-separated list (for example `me@example.com,partner@example.com`). The Worker then refuses any other account, even one the Access policy lets in by mistake.
+Variables do the same job, and win over what the setup page recorded: `ACCESS_TEAM_DOMAIN` (`https://<team>.cloudflareaccess.com`), `ACCESS_AUD` (the Access application's Audience tag; several separated by commas) and, optionally, `ACCESS_ALLOWED_EMAILS`. Signed in, the setup page lists the exact values (under **No setup password?**); you can also find them in the dashboard: the team domain under **Zero Trust → Settings**, and the AUD tag on the Access application's overview. Add them in **Settings → Variables and Secrets** (type **Text** or **Secret**) and deploy, or from the command line with `npx wrangler secret put ACCESS_AUD` (and so on). `"keep_vars": true` in `wrangler.jsonc` stops a deploy from removing variables set in the dashboard. A `vars` section in `wrangler.jsonc` works too, and wins over the dashboard on every deploy.
+
+**Who gets in.** The setup page lets in only the account that claimed it. To change that, set `ACCESS_ALLOWED_EMAILS` to a comma-separated list (for example `me@example.com,partner@example.com`, yourself included), and let them through the Access policy too. The Worker refuses any account that isn't on the list, even one the Access policy lets in by mistake.
+
+**Starting setup over.** If you delete and recreate the Access application, sign-ins stop being verified (it has a new Audience tag). Either set the variables above, or forget what the setup page recorded and claim it again: in the dashboard, **Storage & Databases → D1 → (your database) → Console**, run `DELETE FROM kb_meta WHERE key = 'access_config';` (or `npx wrangler d1 execute <database> --remote --command "DELETE FROM kb_meta WHERE key = 'access_config'"`), and within a minute the setup page is back.
+
+### Signing out, and what else protects your notes
 
 **Settings → Security** in the app shows who you're signed in as. **Sign out of this device** removes the notes, files and drawings the browser keeps for offline use (including its HTTP cache and the encrypted copy of every note), signs out every other Lumen tab in that browser too, then ends your Access session. Use it on any computer that isn't yours. Offline, it can't empty the browser's cache of opened pictures and files, so it says so before leaving (clear the site's data in the browser's settings), and empties it the next time Lumen opens there.
 
@@ -273,6 +286,7 @@ The logo is an open notebook on a lapis tile: a cream left page, a slightly shad
 ```
 worker/            Cloudflare Worker (Access check + API)
   gate.ts          the Access check every request passes, security headers, setup page
+  setup.ts         which Access app to trust: the variables, or what the setup page recorded
   index.ts         routes: notes, folders, search, files, drawings, export, encryption keyring
   auth.ts          Cloudflare Access token (JWT) verification
   schema.ts        D1 schema, applied automatically
@@ -291,11 +305,13 @@ wrangler.jsonc     Cloudflare configuration (nothing account-specific; see "Depl
 
 ## Troubleshooting
 
-- **"Lumen isn't connected to Cloudflare Access yet"**: `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` isn't set. Turn on Access, sign in, and add the values the page shows in **Settings → Variables and Secrets** (see [Protect it with Cloudflare Access](#protect-it-with-cloudflare-access)).
+- **"Finish setting up your Lumen"**: it isn't set up yet. Follow the steps on the page (see [Protect it with Cloudflare Access](#protect-it-with-cloudflare-access)).
+- **"That isn't the setup password"**: a secret can't be read back, so replace `SETUP_PASSWORD` in **Settings → Variables and Secrets** with one you know (12 or more characters), and type that. **"Too many wrong setup passwords"**: 10 wrong ones close the form for an hour; wait, or [set it up by hand](#setting-it-up-by-hand).
+- **"Lumen can't read its settings just now"**: the database didn't answer. Reload in a moment.
 - **The setup page came back after a deploy**: something in the repository replaced the values you set in the dashboard. Usually it's a `vars` section in `wrangler.jsonc` (which wins over the dashboard) that leaves them out or empty, or `"keep_vars": true` was removed. Remove the section or put the values in it, and deploy again.
 - **"This address isn't protected by Cloudflare Access"**: Access isn't in front of the hostname you opened. Turn it on for that hostname, or for the whole Worker.
-- **"Your sign-in couldn't be verified"**: the Access token didn't match. Usually `ACCESS_AUD` holds a different application's tag (for example after you created a new Access app); add the new tag. Reloading signs you in again if the session simply expired.
-- **"This account can't open these notes"**: you're signed in with an account that isn't in `ACCESS_ALLOWED_EMAILS`.
+- **"Your sign-in couldn't be verified"**: the Access token didn't match. Usually the Access application was recreated, so it has a new Audience tag: see [Starting setup over](#setting-it-up-by-hand) (or, with variables, add the new tag to `ACCESS_AUD`). Reloading signs you in again if the session simply expired.
+- **"This account can't open these notes"**: you're signed in with an account that isn't allowed in: not the one that claimed this Lumen, or not in `ACCESS_ALLOWED_EMAILS`. See [Who gets in](#setting-it-up-by-hand).
 - **"Your sign-in session has ended"**: your Access session expired. Choose **Sign in again**; edits you made are kept on the device and saved after you sign back in.
 - **"Lumen has used up today's Cloudflare free allowance"**: one of the free plan's daily limits ran out (100,000 requests, D1's rows read or written, or KV's 1,000 writes). Edits stay on the device and are sent once the limits reset at midnight UTC; nothing is retried before then. Moving file storage to R2 (see above) or Workers Paid raises the limits.
 - **"Your notes are end-to-end encrypted, and this copy of Lumen is out of date"**: a tab opened before an update tried to save unencrypted text. Reload it; its unsent edits are kept and saved encrypted.

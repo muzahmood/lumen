@@ -173,6 +173,11 @@ export function readAccessToken(req: Request): string | null {
 /** Plain addresses only (no spaces, quotes or angle brackets), so nothing odd ends up on the setup page. */
 const EMAIL_RE = /^[^\s@<>"'&;,]{1,64}@[a-z0-9.-]{1,190}\.[a-z]{2,63}$/i;
 
+/** True for something shaped like an Access application's Audience (AUD) tag. */
+export const isAudTag = (value: string) => AUD_RE.test(value);
+/** True for a plain email address (see EMAIL_RE). */
+export const isPlainEmail = (value: string) => EMAIL_RE.test(value);
+
 export interface SetupHint {
   team: string | null;
   aud: string[];

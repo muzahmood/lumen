@@ -6,8 +6,9 @@ dist/
 # Local Wrangler data (your local notes and files live here)
 .wrangler/
 
-# Local-only secrets and environment
+# Local-only secrets and environment (the example lists the secrets the Deploy to Cloudflare screen asks for)
 .dev.vars*
+!.dev.vars.example
 .env*
 
 # Playwright end-to-end test output (npm run test:e2e)

@@ -3,13 +3,18 @@
 //
 // 1. Signs in to Cloudflare (wrangler login) if you aren't already.
 // 2. Asks what to call the Worker (its address becomes https://<name>.<your-subdomain>.workers.dev).
-// 3. Builds and deploys. The first deploy creates the database and file store; later deploys reuse them.
-// 4. Walks you through turning on Cloudflare Access, then saves its two values (and, optionally, the
-//    accounts allowed in) to the Worker as secrets, so nothing personal is written into this folder.
+// 3. Builds and deploys, with a setup password it makes up for you. The first deploy creates the
+//    database and file store; later deploys reuse them.
+// 4. Shows you the setup password and what's left, and opens the Cloudflare dashboard: you turn on
+//    Cloudflare Access, open your Lumen, sign in and type the password. Lumen then records its own
+//    Access settings, so nothing personal is written into this folder.
 //
-// Safe to run again: it redeploys the same Worker and replaces the Access values you enter.
-import { spawnSync } from 'node:child_process';
+// Safe to run again: it redeploys the same Worker (with a new setup password, needed only until
+// your Lumen is set up).
+import { spawn, spawnSync } from 'node:child_process';
+import { randomInt } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
@@ -17,9 +22,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG = path.join(ROOT, 'wrangler.jsonc');
 const WRANGLER = path.join(ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
+const DASH_WORKERS = 'https://dash.cloudflare.com/?to=/:account/workers-and-pages';
 
-const bold = (s) => (process.stdout.isTTY ? `\x1b[1m${s}\x1b[0m` : s);
-const dim = (s) => (process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s);
+const tty = process.stdout.isTTY;
+const bold = (s) => (tty ? `\x1b[1m${s}\x1b[0m` : s);
+const dim = (s) => (tty ? `\x1b[2m${s}\x1b[0m` : s);
 const say = (s = '') => console.log(s);
 const step = (n, s) => say(`\n${bold(`${n}. ${s}`)}`);
 
@@ -47,6 +54,24 @@ async function confirm(question, yes = true) {
 /** Runs wrangler from this project's node_modules (no npx or shell, so it behaves the same everywhere). */
 function wrangler(args, options = {}) {
   return spawnSync(process.execPath, [WRANGLER, ...args], { cwd: ROOT, stdio: 'inherit', ...options });
+}
+
+/** Opens a web page in the default browser, if there is one (quietly does nothing otherwise). */
+function openInBrowser(url) {
+  const [cmd, args] =
+    process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+  try {
+    spawn(cmd, args, { stdio: 'ignore', detached: true, windowsVerbatimArguments: process.platform === 'win32' }).on('error', () => {}).unref();
+  } catch {
+    /* no browser here: the link is printed anyway */
+  }
+}
+
+/** Four random words from the EFF's diceware list (about 52 bits; the setup page allows 10 tries an hour). */
+async function makeSetupPassword() {
+  const { dictionary } = await import('@zxcvbn-ts/language-common');
+  const words = dictionary['diceware-common'];
+  return Array.from({ length: 4 }, () => words[randomInt(words.length)]).join('-');
 }
 
 /* --------------------------------------------------------------- checks --- */
@@ -98,73 +123,39 @@ say(`Creates (on the first deploy) the database ${bold(`${name}-db`)} and the fi
 if (!(await confirm('Deploy now?'))) fail('Nothing was deployed. Run `npm run setup` again when you’re ready.');
 
 if (spawnSync('npm run build', { cwd: ROOT, stdio: 'inherit', shell: true }).status !== 0) fail('The build failed (see above).');
-const deployed = wrangler(['deploy']);
+
+const setupPassword = await makeSetupPassword();
+// Handed to wrangler in a file of its own (deleted straight after), never on the command line.
+const secretsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lumen-setup-'));
+const secretsFile = path.join(secretsDir, 'secrets.json');
+let deployed;
+try {
+  fs.writeFileSync(secretsFile, JSON.stringify({ SETUP_PASSWORD: setupPassword }), { mode: 0o600 });
+  deployed = wrangler(['deploy', '--secrets-file', secretsFile]);
+} finally {
+  fs.rmSync(secretsDir, { recursive: true, force: true });
+}
 // Wrangler writes the new resources' IDs into wrangler.jsonc. They aren't needed (later deploys find the
 // resources through the deployed Worker), and leaving the file as it was keeps `git pull` conflict-free.
 if (fs.readFileSync(CONFIG, 'utf8') !== config) fs.writeFileSync(CONFIG, config);
 if (deployed.status !== 0) fail('The deploy failed (see above). Fix what it says, then run `npm run setup` again.');
 
-/* ---------------------------------------------------------------- 4. access --- */
+/* ---------------------------------------------------------------- 4. finish --- */
 
-step(4, 'Cloudflare Access');
-say('Lumen serves nothing (not even its own page) until Cloudflare Access is in front of it. To turn it on:');
-say(`  a. In the Cloudflare dashboard, open ${bold(`Workers & Pages → ${name} → Settings → Domains & Routes`)}.`);
-say(`  b. Next to the ${bold('workers.dev')} address, turn on ${bold('Cloudflare Access')}. Under ${bold('Manage Cloudflare Access')},`);
-say('     make sure its policy lets in only your email address.');
-say(`  c. Open your Lumen address (the ${bold('workers.dev')} link printed above) and sign in.`);
-say('     The page then shows your team domain and AUD tag.');
-say(dim('\nPress Enter on an empty answer to skip this; you can add the values in the dashboard later'));
-say(dim('(Settings → Variables and Secrets), as the page in step c explains.'));
+step(4, 'Finish in your browser');
+say(`Your setup password: ${bold(setupPassword)}`);
+say(dim('You type it once, on your Lumen’s first page. Keep it until then (it isn’t needed after).'));
+say('');
+say(`  a. In the Cloudflare dashboard, open ${bold(`Workers & Pages → ${name} → Access`)}, choose`);
+say(`     ${bold('Protect this Worker behind Access')} → ${bold('All traffic')}, pick a policy that lets in only you`);
+say(`     (${bold('Cloudflare account')} does, if you’re its only member) and ${bold('Apply')}.`);
+say(dim('     First time using Access? Cloudflare asks you to set up Zero Trust first: a team name and the'));
+say(dim('     Free plan (up to 50 people). It may ask for a payment card; the Free plan isn’t charged.'));
+say(`  b. Open your Lumen (the ${bold('workers.dev')} address printed above), sign in, and type the setup password.`);
+say('');
+if (await confirm('Open the Cloudflare dashboard now?')) openInBrowser(DASH_WORKERS);
+else say(`It’s at ${DASH_WORKERS}`);
 
-const normalizeTeam = (value) => {
-  let v = value.trim().toLowerCase().replace(/\/+$/, '');
-  if (/^[a-z0-9-]+$/.test(v)) v = `${v}.cloudflareaccess.com`;
-  if (!/^https?:\/\//.test(v)) v = `https://${v}`;
-  return /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(v) ? v : null;
-};
-
-let team = null;
-while (!team) {
-  const answer = await ask('\nACCESS_TEAM_DOMAIN (like https://<team>.cloudflareaccess.com):');
-  if (!answer) break;
-  team = normalizeTeam(answer);
-  if (!team) say('That isn’t a team domain. It looks like https://<team>.cloudflareaccess.com.');
-}
-
-let aud = null;
-while (team && !aud) {
-  const answer = await ask('ACCESS_AUD (the 64-character Audience tag):');
-  if (!answer) break;
-  const tags = answer.split(/[\s,]+/).filter(Boolean);
-  if (tags.length && tags.every((t) => /^[a-f0-9]{32,128}$/.test(t))) aud = tags.join(',');
-  else say('That isn’t an AUD tag: it’s a long string of 0–9 and a–f. List several separated by commas.');
-}
-
-if (!team || !aud) {
-  say(`\n${bold('Deployed.')} Access isn’t set up yet, so your Lumen address shows a setup page until it is.`);
-  say('It lists exactly which values to add. Or run `npm run setup` again.');
-  process.exit(0);
-}
-
-let emails = '';
-for (;;) {
-  emails = await ask('ACCESS_ALLOWED_EMAILS (recommended: only these accounts get in; comma-separated, Enter to skip):');
-  const list = emails.split(/[\s,]+/).filter(Boolean);
-  if (list.every((e) => /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[a-z]{2,}$/i.test(e))) {
-    emails = list.join(',');
-    break;
-  }
-  say('One of those isn’t an email address.');
-}
-
-const secrets = { ACCESS_TEAM_DOMAIN: team, ACCESS_AUD: aud, ...(emails ? { ACCESS_ALLOWED_EMAILS: emails } : {}) };
-say(`\nSaving ${Object.keys(secrets).join(', ')} to the Worker as secrets...`);
-const saved = wrangler(['secret', 'bulk', '--name', name], { input: JSON.stringify(secrets), stdio: ['pipe', 'inherit', 'inherit'] });
-if (saved.status !== 0) {
-  fail('Those values couldn’t be saved (see above). Add them in the dashboard instead: Workers & Pages → ' +
-    `${name} → Settings → Variables and Secrets.`);
-}
-
-say(`\n${bold('Done.')} Reload your Lumen address: after the Access sign-in, your notes open.`);
-say(dim('Later updates: `git pull`, then `npm run deploy`. See README → "Deploy your own" for a custom domain,'));
-say(dim('R2 storage and automatic deploys from GitHub.'));
+say(`\n${bold('That’s it from here.')} Your Lumen sets itself up once you type the password.`);
+say(dim('Later updates: `git pull`, then `npm run deploy`. README → "Deploy your own" covers your own domain,'));
+say(dim('more storage with R2, and deploying on every push to GitHub.'));

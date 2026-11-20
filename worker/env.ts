@@ -13,6 +13,11 @@ export interface Env {
   ACCESS_AUD?: string;
   /** Optional: only these emails may open the notes, even if the Access policy is broader. Comma-separated. */
   ACCESS_ALLOWED_EMAILS?: string;
+  /**
+   * Secret, for the assisted setup (see setup.ts): typed once on the setup page to claim a new Lumen,
+   * which then records its own Access settings. Not needed when the ACCESS_ variables are set.
+   */
+  SETUP_PASSWORD?: string;
   /** Set only by `wrangler dev --var LOCAL_DEV:true` (never deployed). Lets http://localhost run without Access. */
   LOCAL_DEV?: string;
 }

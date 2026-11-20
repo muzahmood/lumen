@@ -1,0 +1,4 @@
+# The Deploy to Cloudflare screen asks for this. Choose a password of 12 or more characters (a few random
+# words work well): you type it once, on your new Lumen's first page, to show it's yours. `npm run setup`
+# makes one up for you instead. Not needed for local development (npm run dev).
+SETUP_PASSWORD=

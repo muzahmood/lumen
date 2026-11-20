@@ -29,6 +29,9 @@
       },
       "FILES_KV": {
         "description": "Workers KV storage for images, attachments and drawings (1 GB on the free plan, no card needed). You can move uploads to R2 later; see the README."
+      },
+      "SETUP_PASSWORD": {
+        "description": "Choose a password of **12 or more characters** (a few random words work well). You type it once, on your new Lumen's first page, to show it's yours; it isn't needed after that."
       }
     }
   },

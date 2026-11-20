@@ -2849,12 +2849,22 @@ body.is-resizing .resizer::after {
   position: relative;
 }
 
-/* Its Copy button, as reading view has, over the line's right end (so the line is no taller than with
-   the fence showing). Centred on the label: the line's 6px top padding (.cm-code-first) moves it 3px. */
-.cm-lp-code-copy {
+/* Its buttons (Copy, and Format on JSON), as reading view has Copy, over the line's right end (so the
+   line is no taller than with the fence showing). Centred on the label: the line's 6px top padding
+   (.cm-code-first) moves them 3px. */
+.cm-lp-code-tools {
   position: absolute;
   top: calc(50% + 3px);
   right: 8px;
+  display: flex;
+  gap: 2px;
+  font-size: 0.85em;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.15s;
+}
+
+.cm-lp-code-tools button {
   display: inline-flex;
   align-items: center;
   height: 1.9em;
@@ -2864,29 +2874,27 @@ body.is-resizing .resizer::after {
   background: transparent;
   color: var(--text-3);
   font-family: var(--font-ui);
-  font-size: 0.85em;
+  font-size: 1em;
   font-weight: 550;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
-  transform: translateY(-50%);
-  transition: opacity 0.15s, background-color 0.12s;
+  transition: background-color 0.12s;
 }
 
 /* Shown while the pointer is anywhere over its block: the label line, or a code line with no other
    block's first line between them. */
-.cm-lp-code-bar:hover .cm-lp-code-copy,
-.cm-lp-code-bar:has(~ .cm-code-line:hover):not(:has(~ .cm-code-first:hover)):not(:has(~ .cm-code-first ~ .cm-code-line:hover)) .cm-lp-code-copy {
+.cm-lp-code-bar:hover .cm-lp-code-tools,
+.cm-lp-code-bar:has(~ .cm-code-line:hover):not(:has(~ .cm-code-first:hover)):not(:has(~ .cm-code-first ~ .cm-code-line:hover)) .cm-lp-code-tools {
   opacity: 1;
 }
 
-.cm-lp-code-copy:hover {
+.cm-lp-code-tools button:hover {
   background: var(--bg-hover);
   color: var(--text);
 }
 
 @media (hover: none) {
-  .cm-lp-code-copy {
+  .cm-lp-code-tools {
     opacity: 1;
   }
 }

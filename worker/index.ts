@@ -1,7 +1,7 @@
 import { Hono, type Context } from 'hono';
 import type { AppEnv, Env } from './env';
 import { ensureSchema } from './schema';
-import { authenticate, refuse, secureResponse, serveAsset } from './gate';
+import { authenticate, claimSetup, refuse, secureResponse, serveAsset, SETUP_PATH } from './gate';
 import {
   activeStorage,
   deleteBlob,
@@ -2225,6 +2225,8 @@ app.onError((err, c) => secureResponse(handleError(err, c)));
 // The gate: runs for every request (wrangler.jsonc sends all paths to the Worker first),
 // so the app shell, scripts, files and API are all closed to anyone Access hasn't signed in.
 app.use('*', async (c, next) => {
+  // The setup page's form, which claims a Lumen that has no Access settings yet (see gate.ts).
+  if (c.req.method === 'POST' && new URL(c.req.url).pathname === SETUP_PATH) return secureResponse(await claimSetup(c));
   const result = await authenticate(c);
   if (!result.ok) return secureResponse(refuse(c, result));
   c.set('user', result.user);
