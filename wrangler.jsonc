@@ -1,0 +1,73 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // The Worker's name, and the start of its address: https://lumen.<your-subdomain>.workers.dev.
+  // Rename it here (or in the Deploy to Cloudflare screen) before the first deploy.
+  "name": "lumen",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+
+  // Nothing in this file is tied to one Cloudflare account, so the same file deploys anyone's copy.
+  // Deploys go to the account you're signed in to (`npx wrangler login`), or the one Workers Builds
+  // is connected to.
+  //
+  // Addresses: with no "routes" here, Lumen is served on its workers.dev address. To serve it on a
+  // domain of your own instead, add it as a Custom Domain in the dashboard (Workers & Pages → lumen →
+  // Settings → Domains & Routes), or deploy with `npx wrangler deploy --domain notes.example.com`, which
+  // also turns the workers.dev address off. Either way, put Cloudflare Access in front of it (README →
+  // "Protect it with Cloudflare Access"). Version preview URLs stay off, so no other hostname exists.
+  "preview_urls": false,
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Every request, including the app's own scripts and styles, goes through the
+    // Worker's Access check first. Nothing is served to anyone Access hasn't signed in.
+    "run_worker_first": true
+  },
+
+  // Storage is created on the first deploy and reused after that (Wrangler matches it by binding
+  // name), so no IDs go in this file. Each copy gets its own, named after the Worker:
+  //  - DB: the database for notes, folders, history and search ("lumen-db").
+  //  - FILES_KV: images, attachments and drawings ("lumen-files-kv"; 1 GB free, no card needed).
+  // The database schema sets itself up on first run, so there are no migrations to apply.
+  "d1_databases": [{ "binding": "DB" }],
+  "kv_namespaces": [{ "binding": "FILES_KV" }],
+
+  // Optional upgrades, each an R2 bucket (R2 gives 10 GB free; it needs R2 enabled on
+  // your account first). Uncomment the ones you want; the next deploy creates them.
+  //  - FILES_BUCKET: new uploads go to R2 (larger uploads); existing KV files keep working.
+  //  - BACKUP_BUCKET: automatic weekly backups, kept off-database (the newest 8). The app
+  //    makes them, encrypted on your device when the library is; see Settings → Data.
+  // "r2_buckets": [
+  //   {
+  //     "binding": "FILES_BUCKET"
+  //   },
+  //   {
+  //     "binding": "BACKUP_BUCKET"
+  //   }
+  // ],
+
+  // Security: the Worker verifies the Cloudflare Access sign-in on every request.
+  // Until both required settings are set it serves nothing but a setup page, which
+  // also shows the exact values to use once Access is turned on (see README).
+  //   ACCESS_TEAM_DOMAIN     required, e.g. "https://<your-team>.cloudflareaccess.com"
+  //   ACCESS_AUD             required, the Access application's Audience (AUD) tag;
+  //                          list several separated by commas (e.g. workers.dev + custom domain)
+  //   ACCESS_ALLOWED_EMAILS  optional, comma-separated; if set, only these accounts get in,
+  //                          even if the Access policy itself is broader
+  // They belong to your copy, not to the code, so set them in the dashboard: Workers & Pages →
+  // lumen → Settings → Variables and Secrets (as Text or Secret). "keep_vars" below stops a deploy
+  // from removing them. (A "vars" section here works too, and then wins over the dashboard.)
+  // Local development (npm run dev / npm start) passes LOCAL_DEV on the command line; it's never deployed.
+  "keep_vars": true,
+
+  // Daily clean-up: notes in the trash for more than 30 days are deleted.
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

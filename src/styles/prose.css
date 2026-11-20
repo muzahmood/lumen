@@ -1,0 +1,701 @@
+﻿/* Rendered Markdown (reading view and split preview). */
+
+.kb-prose {
+  /* Absolutely positioned HTML in a note stays inside the note (the sanitizer removes fixed and
+     sticky positioning), so it can't be laid over the rest of the app. */
+  position: relative;
+  font-family: var(--font-note);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+  color: var(--text);
+  overflow-wrap: break-word;
+  font-optical-sizing: auto;
+}
+
+.kb-prose > :first-child {
+  margin-top: 0;
+}
+
+.kb-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.kb-prose p {
+  margin: 0 0 0.95em;
+}
+
+.kb-prose h1,
+.kb-prose h2,
+.kb-prose h3,
+.kb-prose h4,
+.kb-prose h5,
+.kb-prose h6 {
+  margin: 1.8em 0 0.5em;
+  font-family: var(--font-note);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  scroll-margin-top: 24px;
+}
+
+.kb-prose h1 {
+  font-size: 1.75em;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+}
+
+.kb-prose h2 {
+  font-size: 1.375em;
+}
+
+.kb-prose h3 {
+  font-size: 1.15em;
+  letter-spacing: -0.012em;
+}
+
+.kb-prose h4 {
+  font-size: 1em;
+}
+
+.kb-prose h5,
+.kb-prose h6 {
+  font-size: 0.9em;
+  color: var(--text-2);
+  letter-spacing: 0;
+}
+
+.kb-prose a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: text-decoration-color 0.15s;
+}
+
+.kb-prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+.kb-prose a.kb-wikilink {
+  text-decoration: none;
+  padding: 0 3px;
+  margin: 0 -1px;
+  border-radius: 5px;
+  background: var(--accent-softer);
+}
+
+.kb-prose a.kb-wikilink:hover {
+  background: var(--accent-soft);
+}
+
+.kb-prose a.kb-wikilink.is-missing {
+  color: var(--text-2);
+  background: transparent;
+  text-decoration: underline dashed var(--text-4);
+  text-underline-offset: 3px;
+}
+
+.kb-prose strong {
+  font-weight: 650;
+}
+
+.kb-prose mark {
+  padding: 0.05em 0.15em;
+  border-radius: 0.25em;
+  background: var(--mark);
+  color: inherit;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.kb-prose :not(pre) > code {
+  padding: 0.12em 0.36em;
+  border-radius: 6px;
+  background: var(--code-bg);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+  color: var(--code-text);
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+}
+
+.kb-prose blockquote {
+  margin: 1.2em 0;
+  padding: 0.1em 0 0.1em 1.1em;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-2);
+}
+
+.kb-prose ul,
+.kb-prose ol {
+  margin: 0 0 1em;
+  padding-left: 1.45em;
+}
+
+.kb-prose li {
+  margin: 0.3em 0;
+  padding-left: 0.15em;
+}
+
+.kb-prose li > p {
+  margin: 0.25em 0;
+}
+
+.kb-prose li::marker {
+  color: var(--text-3);
+}
+
+.kb-prose ul.kb-task-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.kb-prose li.kb-task {
+  position: relative;
+  padding-left: 1.8em;
+  list-style: none;
+}
+
+.kb-prose li.kb-task.is-done {
+  color: var(--text-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-4);
+}
+
+.kb-prose .kb-task-box {
+  position: absolute;
+  left: 0;
+  top: 0.32em;
+  display: grid;
+  place-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0;
+  border-radius: 0.32em;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1.5px var(--control-edge, #7d8b9b);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.kb-prose .kb-task-box:hover {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.kb-prose .kb-task-box::before {
+  content: '';
+  width: 0.62em;
+  height: 0.62em;
+  transform: scale(0);
+  background: var(--on-accent);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transition: transform 0.12s var(--ease);
+}
+
+.kb-prose .kb-task-box:checked {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.kb-prose .kb-task-box:checked::before {
+  transform: scale(1);
+}
+
+.kb-prose hr {
+  height: 1px;
+  margin: 2.4em 0;
+  border: none;
+  background: var(--border);
+}
+
+.kb-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--border);
+  cursor: zoom-in;
+  vertical-align: middle;
+}
+
+.kb-prose .kb-media {
+  display: block;
+  max-width: 100%;
+  margin: 1.2em 0;
+  border-radius: var(--r-lg);
+}
+
+.kb-prose audio.kb-media {
+  width: 100%;
+}
+
+.kb-prose .kb-table-wrap {
+  margin: 1.4em 0;
+  overflow-x: auto;
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.kb-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 0.88em;
+  line-height: 1.5;
+}
+
+.kb-prose th,
+.kb-prose td {
+  padding: 0.6em 0.9em;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+  vertical-align: top;
+}
+
+.kb-prose th + th,
+.kb-prose td + td {
+  border-left: 1px solid var(--border-soft);
+}
+
+.kb-prose th {
+  background: var(--bg-sunken);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.kb-prose tr:last-child td {
+  border-bottom: none;
+}
+
+.kb-prose tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
+/* Code blocks */
+
+.kb-prose .kb-code {
+  position: relative;
+  margin: 1.4em 0;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--code-bg);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+}
+
+.kb-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-3);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 550;
+}
+
+.kb-code-copy {
+  height: 24px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 550;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.12s;
+}
+
+.kb-code:hover .kb-code-copy,
+.kb-code-copy:focus-visible {
+  opacity: 1;
+}
+
+.kb-code-copy:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+@media (hover: none) {
+  .kb-code-copy {
+    opacity: 1;
+  }
+}
+
+.kb-prose .kb-code pre {
+  margin: 0;
+  padding: 12px 16px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  line-height: 1.65;
+  tab-size: 4;
+}
+
+.kb-prose .kb-code code {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--text);
+  font-size: inherit;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: var(--syn-keyword);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--syn-string);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--syn-number);
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: var(--syn-fn);
+}
+
+.hljs-type,
+.hljs-title.class_,
+.hljs-attribute,
+.hljs-selector-class {
+  color: var(--syn-type);
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-property,
+.hljs-params {
+  color: var(--syn-prop);
+}
+
+.hljs-meta {
+  color: var(--text-3);
+}
+
+.hljs-deletion {
+  color: var(--danger);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* Callouts: > [!tip] Title */
+
+.kb-prose blockquote.kb-callout {
+  --c: var(--c-note);
+  margin: 1.4em 0;
+  padding: 0.8em 1.05em 0.85em;
+  border: none;
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--c) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 20%, transparent);
+  color: var(--text);
+}
+
+.kb-prose .kb-callout[data-callout='tip'],
+.kb-prose .kb-callout[data-callout='success'] {
+  --c: var(--c-tip);
+}
+
+.kb-prose .kb-callout[data-callout='warning'] {
+  --c: var(--c-warning);
+}
+
+.kb-prose .kb-callout[data-callout='danger'] {
+  --c: var(--c-danger);
+}
+
+.kb-prose .kb-callout[data-callout='question'],
+.kb-prose .kb-callout[data-callout='example'] {
+  --c: var(--c-question);
+}
+
+.kb-prose .kb-callout[data-callout='abstract'] {
+  --c: var(--c-abstract);
+}
+
+.kb-prose .kb-callout[data-callout='quote'] {
+  --c: var(--c-quote);
+}
+
+.kb-callout-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.3em;
+  color: var(--c);
+  font-family: var(--font-ui);
+  font-size: 0.9em;
+  font-weight: 650;
+}
+
+.kb-callout-icon {
+  flex: none;
+}
+
+.kb-callout > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Diagrams and drawings */
+
+.kb-prose .kb-mermaid {
+  position: relative;
+  display: block;
+  margin: 1.5em 0;
+  padding: 1.25em;
+  overflow-x: auto;
+  border-radius: var(--r-xl);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.kb-mermaid-svg {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  cursor: zoom-in;
+}
+
+.kb-mermaid-svg svg {
+  height: auto;
+}
+
+.kb-prose .kb-mermaid-pending {
+  width: 100%;
+  margin: 0;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.kb-prose .kb-mermaid.is-error {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.kb-mermaid-error {
+  color: var(--danger);
+  font-family: var(--font-ui);
+  font-size: 0.85em;
+}
+
+.kb-mermaid-error pre {
+  margin: 0.4em 0 0.8em;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+.kb-block-edit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  height: 28px;
+  padding: 0 11px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elevated) 90%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 550;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s, transform 0.15s var(--ease);
+}
+
+.kb-mermaid:hover .kb-block-edit,
+.kb-drawing:hover .kb-block-edit,
+.kb-block-edit:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: none) {
+  .kb-block-edit {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.kb-mermaid.is-error .kb-block-edit {
+  position: static;
+  margin-top: 0.6em;
+  opacity: 1;
+  transform: none;
+}
+
+.kb-prose .kb-drawing {
+  position: relative;
+  display: block;
+  margin: 1.4em 0;
+  padding: 0.75em;
+  border-radius: var(--r-xl);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--border);
+  text-align: center;
+}
+
+[data-theme='dark'] .kb-prose .kb-drawing {
+  background: var(--bg-sunken);
+}
+
+.kb-prose .kb-drawing-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .kb-prose .kb-drawing-img {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
+/* Touch screens show the edit button all the time, so give it its own row instead of covering the picture. */
+@media (hover: none) {
+  .kb-prose .kb-mermaid:not(.is-error),
+  .kb-prose .kb-drawing {
+    padding-top: 48px;
+  }
+}
+
+/* Odds and ends */
+
+.kb-prose details {
+  margin: 1.1em 0;
+  padding: 0.7em 1em;
+  border-radius: var(--r-lg);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+}
+
+.kb-prose summary {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kb-prose details[open] summary {
+  margin-bottom: 0.5em;
+}
+
+.kb-prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.4em 0;
+}
+
+.kb-prose .katex {
+  font-size: 1.05em;
+}
+
+.kb-prose .footnotes {
+  color: var(--text-2);
+  font-size: 0.86em;
+}
+
+.kb-prose .footnotes-sep {
+  margin-top: 2.6em;
+}
+
+.kb-prose .footnote-ref a {
+  font-family: var(--font-ui);
+  font-size: 0.75em;
+  text-decoration: none;
+}
+
+.history-preview .kb-prose {
+  font-size: 15px;
+}
+
+/* An image from another website held back by Settings → Security (Ask first): a box naming where it's
+   from, which loads the image when clicked. */
+.kb-prose img.kb-remote {
+  display: inline-block;
+  min-width: 14rem;
+  max-width: 100%;
+  padding: 0.75em 1em;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md, 8px);
+  background: var(--bg-sunken);
+  color: var(--text-2);
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+/* "![[Note]]": that note shown here (filled in by reading view; elsewhere, as in an export, a link). */
+.kb-prose .kb-embed.is-filled {
+  display: block;
+  margin: 1em 0;
+  padding: 10px 14px 2px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-sunken);
+}
+
+.kb-prose .kb-embed-head {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+
+.kb-prose .kb-embed-head .kb-wikilink {
+  color: var(--text-2);
+}
+
+.kb-prose .kb-embed-body {
+  display: block;
+}
+
+.kb-prose .kb-embed-body > :first-child {
+  margin-top: 0;
+}
+
+.kb-prose .kb-embed-missing {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.kb-prose .kb-embed.is-unshown .kb-wikilink {
+  text-decoration-style: dotted;
+}

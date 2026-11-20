@@ -1,0 +1,29 @@
+# Dependencies and build output (Workers Builds installs and builds on every push)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local Wrangler data (your local notes and files live here)
+.wrangler/
+
+# Local-only secrets and environment
+.dev.vars*
+.env*
+
+# Playwright end-to-end test output (npm run test:e2e)
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude Code local settings (per machine)
+.claude/settings.local.json

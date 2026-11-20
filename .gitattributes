@@ -1,0 +1,4 @@
+# Store and check out text files with LF endings on every machine (the build runs on Linux).
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
