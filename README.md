@@ -13,7 +13,7 @@ Everyone runs their own copy, in their own Cloudflare account: there's no shared
 **Your own Lumen in about ten minutes, free:**
 
 1. Click **Deploy to Cloudflare** above. Sign in to Cloudflare and GitHub, and choose a **setup password** when it asks (12 or more characters; a few random words work well).
-2. Open the address it gives you. The page there walks you through putting Cloudflare Access in front of it: a few clicks (the first time, Cloudflare also has you pick a Zero Trust team name).
+2. Open the address it gives you. The page there walks you through putting Cloudflare Access in front of it: a few clicks (the first time, Cloudflare also has you pick a Zero Trust team name). Access can take a minute to switch on, so if a reload doesn't ask you to sign in yet, give it a moment.
 3. Sign in, type your setup password, and your Lumen opens.
 
 From the command line instead: clone this repository, then `npm install` and `npm run setup`, which makes up the setup password for you. More in [Deploy your own](#deploy-your-own).
@@ -190,7 +190,7 @@ The setup page shows these steps and marks the one you're on (here, signed in an
 <p align="center"><img src="docs/screenshots/setup.webp" alt="The setup page: Deploy it and Put Cloudflare Access in front of it are ticked; Confirm it's yours asks for the setup password" width="420"></p>
 
 1. **Zero Trust, the first time.** If you've never used Cloudflare Access, the dashboard first asks you to set up **Zero Trust**: a team name and the **Free** plan. It may ask for a payment card; the Free plan isn't charged.
-2. **Turn on Access for your Worker.** Open **Workers & Pages → (your Worker) → Access**, choose **Protect this Worker behind Access** → **All traffic**, pick a policy that lets in only you (**Cloudflare account** does, if you're its only member) and **Apply**. That covers every address the Worker has, including a custom domain added later.
+2. **Turn on Access for your Worker.** Open **Workers & Pages → (your Worker) → Access**, choose **Protect this Worker behind Access** → **All traffic**, pick a policy that lets in only you (**Cloudflare account** does, if you're its only member) and **Apply**. That covers every address the Worker has, including a custom domain added later. It can take a minute to switch on: until then, reloading still shows the setup page instead of a sign-in.
 3. **Claim it.** Open your Lumen's address and sign in. Type your setup password (the one you chose on the Deploy screen, or that `npm run setup` showed you) and choose **Finish setup**. Lumen records which Access application to trust and lets in only the account you signed in with. Your notes open.
 
 **Why a setup password.** A new Lumen is reachable before Access is in front of it, and anyone can get a validly signed Access sign-in from a Zero Trust team of their own, so a sign-in alone doesn't show the Lumen is yours: the password does. It must be 12 or more characters, wrong ones are limited to 10 an hour, and once your Lumen is set up the form is gone and the password is never used again. No setup password yet (or forgotten)? Add or replace the `SETUP_PASSWORD` secret in **Settings → Variables and Secrets**, and reload.

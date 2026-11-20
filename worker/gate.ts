@@ -228,6 +228,7 @@ function setupSteps(c: Ctx, hint: SetupHint, notice: SetupNotice = {}) {
 
   const accessBody = `
     <p>In the Cloudflare dashboard, open ${worker} → <b>Access</b>. Choose <b>Protect this Worker behind Access</b>, then <b>All traffic</b>, pick a policy that lets in only you (<b>Cloudflare account</b> does, if you’re its only member) and <b>Apply</b>. Then reload this page and sign in.</p>
+    <p class="note">Access can take a minute to switch on: if reloading shows this page again instead of a sign-in, wait a moment and reload once more.</p>
     <p class="note">First time using Access? Cloudflare first asks you to set up ${link(DASH_ZERO_TRUST, 'Zero Trust')}: a team name and the <b>Free</b> plan (up to 50 people). It may ask for a payment card; the Free plan isn’t charged.</p>`;
   const signedInBody = hint.email ? `<p>Signed in as <b>${escapeHtml(hint.email)}</b>.</p>` : '';
 

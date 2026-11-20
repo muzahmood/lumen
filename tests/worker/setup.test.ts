@@ -60,6 +60,8 @@ describe('the setup page', () => {
     expect(page.body).toContain('isn’t connected to Cloudflare Access');
     expect(page.body).toContain('Protect this Worker behind Access');
     expect(page.body).toContain('Zero Trust');
+    // Access takes a moment to apply; a reload too soon still shows this step.
+    expect(page.body).toContain('Access can take a minute to switch on');
     expect(page.body).not.toContain('<form');
     // The API stays closed and says so in JSON.
     const api = await visit('/api/bootstrap');

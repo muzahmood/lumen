@@ -152,6 +152,7 @@ say(`     (${bold('Cloudflare account')} does, if you’re its only member) and 
 say(dim('     First time using Access? Cloudflare asks you to set up Zero Trust first: a team name and the'));
 say(dim('     Free plan (up to 50 people). It may ask for a payment card; the Free plan isn’t charged.'));
 say(`  b. Open your Lumen (the ${bold('workers.dev')} address printed above), sign in, and type the setup password.`);
+say(dim('     Access can take a minute to switch on: if your Lumen still shows its setup page, wait and reload.'));
 say('');
 if (await confirm('Open the Cloudflare dashboard now?')) openInBrowser(DASH_WORKERS);
 else say(`It’s at ${DASH_WORKERS}`);
