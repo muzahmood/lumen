@@ -4,6 +4,8 @@
 
 Lumen is a personal notes app that runs entirely on Cloudflare's free tier: Markdown notes, Mermaid diagrams, Excalidraw drawings, images and attachments, full-text search, and version history. It works on desktop and phone (and installs as an app), keeps working offline, only opens for people Cloudflare Access lets in, and can encrypt your notes end to end so the server only ever stores ciphertext.
 
+<p align="center"><img src="docs/screenshots/hero.webp" alt="Lumen on a computer: the sidebar with folders and tags, the note list, and Home with a greeting, quick capture, pinned notes and recent edits" width="900"></p>
+
 Everyone runs their own copy, in their own Cloudflare account: there's no shared server, and nobody else (this project included) can see your notes.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/muzahmood/lumen)
@@ -15,6 +17,21 @@ Everyone runs their own copy, in their own Cloudflare account: there's no shared
 3. Sign in, type your setup password, and your Lumen opens.
 
 From the command line instead: clone this repository, then `npm install` and `npm run setup`, which makes up the setup password for you. More in [Deploy your own](#deploy-your-own).
+
+## A look around
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/editing.webp" alt="Editing a note with live preview: a tip callout, a task list with due dates and a Gantt chart, with the formatting toolbar"><br><sub><b>Live preview.</b> Markdown that looks finished as you type: tasks, callouts, diagrams.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/reading-dark.webp" alt="Reading a note in the dark theme: a bulleted list, a highlight, a note callout and a diagram"><br><sub><b>Reading view</b>, dark theme: highlights, callouts, links between notes, diagrams.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/screenshots/tasks.webp" alt="The Tasks view: overdue, today and upcoming tasks from every note, one repeating every two weeks"><br><sub><b>Tasks</b> from every note: overdue, today, upcoming, and repeating ones.</sub></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/drawing.webp" alt="The drawing editor with a hand-drawn garden plan: raised beds, fruit trees, a path, herbs and a patio"><br><sub><b>Drawings</b> with Excalidraw, saved in your notes and editable later.</sub></td>
+  </tr>
+</table>
+
+<p align="center"><img src="docs/screenshots/phone.webp" alt="Lumen on three phones: Home, a recipe with a table and a formula, and the Tasks view in the dark theme" width="760"><br><sub><b>On a phone</b>: installs as an app, works offline, light or dark.</sub></p>
 
 ## What's in it
 
@@ -168,7 +185,9 @@ A domain added only in the dashboard leaves the `workers.dev` address on (each d
 
 Cloudflare Access is Cloudflare's sign-in gate, part of Zero Trust (free for up to 50 people). Lumen relies on two layers. Cloudflare Access signs you in at the edge. Then, on every request, the Worker checks the signed Access token itself: the signature, your team, this app's ID, and the expiry date. A request that reaches the Worker any other way gets nothing, whether through a hostname you forgot to protect or with a forged token.
 
-The setup page shows these steps and marks the one you're on:
+The setup page shows these steps and marks the one you're on (here, signed in and on the last step):
+
+<p align="center"><img src="docs/screenshots/setup.webp" alt="The setup page: Deploy it and Put Cloudflare Access in front of it are ticked; Confirm it's yours asks for the setup password" width="420"></p>
 
 1. **Zero Trust, the first time.** If you've never used Cloudflare Access, the dashboard first asks you to set up **Zero Trust**: a team name and the **Free** plan. It may ask for a payment card; the Free plan isn't charged.
 2. **Turn on Access for your Worker.** Open **Workers & Pages → (your Worker) → Access**, choose **Protect this Worker behind Access** → **All traffic**, pick a policy that lets in only you (**Cloudflare account** does, if you're its only member) and **Apply**. That covers every address the Worker has, including a custom domain added later.
@@ -299,6 +318,7 @@ shared/            note text helpers used by both the Worker and the app
 tests/             worker/ (API in the Workers runtime) and unit/; see "Tests"
   styles/          app and reading styles
 public/            icons, web app manifest, service worker (offline support)
+docs/              screenshots for this README; social-preview.png for the repository's link previews
 scripts/           setup.mjs (npm run setup: a guided first deploy), make-icons.mjs
 wrangler.jsonc     Cloudflare configuration (nothing account-specific; see "Deploy your own")
 ```
